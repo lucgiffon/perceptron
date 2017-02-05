@@ -34,26 +34,49 @@ if __name__ == "__main__":
     corpus_train_filename = '/home/luc/Documents/projets/perceptron/macaon2_sources/maca_data2/fr/maca_trans_parser/train.cutoff.cff'
     corpus_test_filename = '/home/luc/Documents/projets/perceptron/macaon2_sources/maca_data2/fr/maca_trans_parser/test.cff'
 
-    root_cmd_line_averaged = "/home/luc/virtualenvs/machinelearning/bin/python3 rewritted_perceptron.py averaged"
-    root_cmd_line_vanilla = "/home/luc/virtualenvs/machinelearning/bin/python3 rewritted_perceptron.py vanilla"
+    root_cmd_line = "/home/luc/virtualenvs/machinelearning/bin/python3 rewritted_perceptron.py"
 
     root_cmd_line_iteration = "--iteration_number=%s"
     root_cmd_line_tee = "| tee -a test_results/%s"
 
-    command_lines.extend(varying_iteration_command_lines(" ".join([root_cmd_line_vanilla,
+    root_cmd_line_averaged = "--averaged"
+    root_cmd_line_mira = "--mira"
+
+    # vanilla
+    command_lines.extend(varying_iteration_command_lines(" ".join([root_cmd_line,
                                                                    corpus_train_filename,
                                                                    corpus_test_filename,
                                                                    root_cmd_line_iteration,
                                                                    root_cmd_line_tee % "vanilla_iteration_1-15.csv"]),
                                                          15))
 
-    command_lines.extend(varying_iteration_command_lines(" ".join([root_cmd_line_averaged,
+    # averaged
+    command_lines.extend(varying_iteration_command_lines(" ".join([root_cmd_line,
                                                                    corpus_train_filename,
                                                                    corpus_test_filename,
                                                                    root_cmd_line_iteration,
+                                                                   root_cmd_line_averaged,
                                                                    root_cmd_line_tee % "averaged_iteration_1-15.csv"]),
                                                          15))
 
+    # mira
+    command_lines.extend(varying_iteration_command_lines(" ".join([root_cmd_line,
+                                                                   corpus_train_filename,
+                                                                   corpus_test_filename,
+                                                                   root_cmd_line_iteration,
+                                                                   root_cmd_line_mira,
+                                                                   root_cmd_line_tee % "mira_iteration_1-15.csv"]),
+                                                         15))
+
+    # mira averaged
+    command_lines.extend(varying_iteration_command_lines(" ".join([root_cmd_line,
+                                                                   corpus_train_filename,
+                                                                   corpus_test_filename,
+                                                                   root_cmd_line_iteration,
+                                                                   root_cmd_line_mira,
+                                                                   root_cmd_line_averaged,
+                                                                   root_cmd_line_tee % "mira_averaged_iteration_1-15.csv"]),
+                                                         15))
     pool = multiprocessing.Pool(4)
     pool.map(os_call, command_lines)
 

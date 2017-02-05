@@ -2,12 +2,10 @@
 rewritted_perceptron
 
 Usage:
-  rewritted_perceptron vanilla TRAIN TEST [--size_train=int] [--size_test=int] [--iteration_number=int] [-h]
-  rewritted_perceptron averaged TRAIN TEST [--size_train=int] [--size_test=int] [--iteration_number=int] [-h]
+  rewritted_perceptron TRAIN TEST [--size_train=int] [--size_test=int] [--iteration_number=int] [--averaged] [--mira] [-h]
+  rewritted_perceptron TRAIN TEST [--size_train=int] [--size_test=int] [--iteration_number=int] [--averaged] [--mira] [-h]
 
 Arguments:
-    vanilla                 Run vanilla perceptron
-    averaged                Run averaged perceptron
     TRAIN                   filename train corpus
     TEST                    filename test corpus
 
@@ -16,6 +14,8 @@ Options:
   --size_train=int          Size of train corpus. -1 means all corpus [default: -1].
   --size_test=int           Size of train corpus. -1 means all corpus [default: -1].
   --iteration_number=int    Number of iterations [default: 1].
+  --averaged                Run averaged Perceptron [default: False].
+  --mira                    Run mira Perceptron [default: False]
 
 """
 
@@ -29,10 +29,9 @@ class Perceptron:
 
         self.__feature_class_weights_matrix = feature_class_weights_matrix
         self.__n_classes = len(self.__feature_class_weights_matrix[0])
-        print(self.__n_classes, "classes.")
+        # print(self.__n_classes, "classes.")
         self.__n_features = len(self.__feature_class_weights_matrix)
 
-        assert(averaged != mira)
         # averaging
         self.__averaged = averaged
         self.__feature_class_weights_matrix_sum = [[0 for c in range(self.__n_classes)] for f in range(self.__n_features)]
@@ -68,33 +67,25 @@ class Perceptron:
                                     counter
                                 self.__feature_class_weights_matrix_sum[tpl_i_features_vector[i_feature]][i_class_ref] += \
                                     counter
-                    counter += 1
                 else:
-                    lst_class_scores_fear = []
                     oracle_score = self.evaluate_class_score(tpl_i_features_vector, n_vector_features, i_class_ref)
                     # print("oracle", i_class_ref, oracle_score)
-                    set_classes = set(range(self.__n_classes))
-                    set_classes.remove(i_class_ref)
-                    for i_class in set_classes:
-                        score_class = self.evaluate_class_score(tpl_i_features_vector, n_vector_features, i_class)
-                        # print(i_class, score_class)
-                        if score_class >= oracle_score:
-                            lst_class_scores_fear.append((i_class, score_class))
-                    # print("Error set length:", len(lst_class_scores_fear))
-                    # input()
-                    if len(lst_class_scores_fear) == 0:
-                        pass
-                    else:
-                        for (i_class, score) in lst_class_scores_fear:
-                            step = oracle_score - (score / sum([f**2 for f in tpl_i_features_vector]))
-                            print(step)
+                    argmax, score_max = self.evaluate(tpl_i_features_vector, n_vector_features, get_score=True)
 
-                            for i_feature in range(n_vector_features):
-                                self.__feature_class_weights_matrix[tpl_i_features_vector[i_feature]][i_class] -= step
-                        # input()
+                    if argmax != i_class_ref:
+                        step = 1 - (oracle_score - score_max) / (n_vector_features ** 2)
+                        step = max((step, 0))
+                        step = min((step, 1))
+
                         for i_feature in range(n_vector_features):
-                            self.__feature_class_weights_matrix[tpl_i_features_vector[i_feature]][i_class_ref] += 1
+                            self.__feature_class_weights_matrix[tpl_i_features_vector[i_feature]][argmax] -= step
+                            self.__feature_class_weights_matrix[tpl_i_features_vector[i_feature]][i_class_ref] += step
 
+                            self.__feature_class_weights_matrix_sum[tpl_i_features_vector[i_feature]][argmax] -= \
+                                counter
+                            self.__feature_class_weights_matrix_sum[tpl_i_features_vector[i_feature]][i_class_ref] += \
+                                counter
+                counter += 1
             i_epoch += 1
 
         if self.__averaged:
@@ -103,23 +94,24 @@ class Perceptron:
                     self.__feature_class_weights_matrix[i][j] -= \
                         1 / float(counter) * self.__feature_class_weights_matrix_sum[i][j]
 
-    def evaluate(self, tpl_i_features_vector, n_vector_features, get_scores=False):
+    def evaluate(self, tpl_i_features_vector, n_vector_features, get_score=False):
         # initializing scores (we try to maximize the score)
         lst_classes_scores = [0 for _ in range(self.__n_classes)]
 
         for i_class in range(self.__n_classes):
             lst_classes_scores[i_class] = self.evaluate_class_score(tpl_i_features_vector, n_vector_features, i_class)
 
-        if get_scores is True:
-            return lst_classes_scores
-        else:
-            argmax = 0
-            max = lst_classes_scores[argmax]
-            for i_class in range(self.__n_classes):
-                if lst_classes_scores[i_class] > max:
-                    max = lst_classes_scores[i_class]
-                    argmax = i_class
 
+        argmax = 0
+        max = lst_classes_scores[argmax]
+        for i_class in range(self.__n_classes):
+            if lst_classes_scores[i_class] > max:
+                max = lst_classes_scores[i_class]
+                argmax = i_class
+
+        if get_score is True:
+            return (argmax, max)
+        else:
             return argmax
 
     def evaluate_class_score(self, tpl_i_features_vector, n_vector_features, i_class):
@@ -153,7 +145,7 @@ class Perceptron:
             n_features = len(tpl_i_features_vector)
 
             argmax = self.evaluate(tpl_i_features_vector, n_features)
-            print(i_class_ref, argmax)
+            # print(i_class_ref, argmax)
             if argmax != i_class_ref:
                 error_count += 1
 
@@ -218,11 +210,11 @@ if __name__ == '__main__':
 
     set_corpus_test = get_set_corpus(arguments["TEST"], size=int(arguments["--size_test"]))
 
-    # set_corpus_train_total = get_set_corpus(arguments["TRAIN"])
-    # initialized_matrix = get_class_feature_matrix_from_corpus(set_corpus_train_total)
-    initialized_matrix = get_class_feature_matrix_from_corpus(set_corpus_train)
-    # p = Perceptron(initialized_matrix, averaged=arguments['averaged'])
-    p = Perceptron(initialized_matrix, mira=True)
+    set_corpus_train_total = get_set_corpus(arguments["TRAIN"])
+    initialized_matrix = get_class_feature_matrix_from_corpus(set_corpus_train_total)
+    # initialized_matrix = get_class_feature_matrix_from_corpus(set_corpus_train)
+    p = Perceptron(initialized_matrix, averaged=arguments['--averaged'], mira=arguments['--mira'])
+    # p = Perceptron(initialized_matrix, mira=True)
     p.train(set_corpus_train, int(arguments["--iteration_number"]))
 
     error_rate = p.test(set_corpus_test)
