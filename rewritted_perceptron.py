@@ -39,7 +39,7 @@ class Perceptron:
         #mira
         self.__mira = mira
 
-    def train(self, corpus, n_iter):
+    def train(self, corpus, n_iter=1):
         set_training_tuple_class_features = corpus
 
         # iteration number
@@ -126,7 +126,6 @@ class Perceptron:
                           % (tpl_i_features_vector[i_feature]))
                     score += 0
         return score
-
 
     def test(self, corpus):
 
@@ -218,10 +217,20 @@ if __name__ == '__main__':
     p.train(set_corpus_train, int(arguments["--iteration_number"]))
 
     error_rate = p.test(set_corpus_test)
-    print(arguments["TRAIN"].split("/")[-1] + "," +
-          arguments["TEST"].split("/")[-1] + "," +
-          arguments["--size_train"] + "," +
-          arguments["--size_test"] + "," +
-          arguments["--iteration_number"] + "," +
-          str(error_rate))
+    print(
+        "corpus_train" + "," +
+        "corpus_test" + "," +
+        "taille_train" + "," +
+        "taille_test" + "," +
+        "iteration_nbr" + "," +
+        "taux_erreur"
+    )
+    print(
+        arguments["TRAIN"].split("/")[-1] + "," +
+        arguments["TEST"].split("/")[-1] + "," +
+        arguments["--size_train"] + "," +
+        arguments["--size_test"] + "," +
+        arguments["--iteration_number"] + "," +
+        str(error_rate)
+    )
 
